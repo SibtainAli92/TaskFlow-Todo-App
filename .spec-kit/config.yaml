@@ -1,0 +1,12 @@
+project:
+  name: hackathon-todo
+  version: 0.1.0
+
+specs:
+  directory: specs
+
+phases:
+  - id: phase1-console
+    name: "Phase 1 – Console"
+  - id: phase2-web
+    name: "Phase II – Full-Stack Web"
