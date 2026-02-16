@@ -12,7 +12,7 @@ class UserRole(str, Enum):
 
 
 class UserBase(SQLModel):
-    username: str = Field(unique=True, nullable=False, min_length=3, max_length=50)
+    username: Optional[str] = Field(default=None, unique=True, min_length=3, max_length=50)
     email: EmailStr = Field(unique=True, nullable=False)
     role: UserRole = Field(default=UserRole.USER)
 
@@ -21,7 +21,7 @@ class User(UserBase, table=True):
     __tablename__ = "users"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    username: str = Field(unique=True, nullable=False, min_length=3, max_length=50)
+    username: Optional[str] = Field(default=None, unique=True, min_length=3, max_length=50)
     email: str = Field(unique=True, nullable=False)
     password_hash: str = Field(nullable=False)
     role: UserRole = Field(default=UserRole.USER)

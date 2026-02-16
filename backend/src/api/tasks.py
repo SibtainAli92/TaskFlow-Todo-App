@@ -21,7 +21,7 @@ def get_tasks(
     Get all tasks for the authenticated user
     """
     # Query tasks belonging to the current user
-    statement = select(Task).where(Task.owner_id == current_user_id)
+    statement = select(Task).where(Task.user_id == current_user_id)
     tasks = session.exec(statement).all()
     return tasks
 
@@ -56,7 +56,7 @@ def create_task(
         title=task_data.title,
         description=task_data.description,
         completed=False,  # New tasks are not completed by default
-        owner_id=current_user.id
+        user_id=current_user.id
     )
     session.add(db_task)
     session.commit()
@@ -73,7 +73,7 @@ def get_task(
     """
     Get a specific task by ID, must be owned by authenticated user
     """
-    statement = select(Task).where(Task.id == task_id, Task.owner_id == current_user_id)
+    statement = select(Task).where(Task.id == task_id, Task.user_id == current_user_id)
     task = session.exec(statement).first()
 
     if not task:
@@ -95,7 +95,7 @@ def update_task(
     """
     Update a task by ID, must be owned by authenticated user
     """
-    statement = select(Task).where(Task.id == task_id, Task.owner_id == current_user_id)
+    statement = select(Task).where(Task.id == task_id, Task.user_id == current_user_id)
     task = session.exec(statement).first()
 
     if not task:
@@ -143,7 +143,7 @@ def toggle_task_completion(
     """
     Toggle the completion status of a task, must be owned by authenticated user
     """
-    statement = select(Task).where(Task.id == task_id, Task.owner_id == current_user_id)
+    statement = select(Task).where(Task.id == task_id, Task.user_id == current_user_id)
     task = session.exec(statement).first()
 
     if not task:
@@ -171,7 +171,7 @@ def delete_task(
     """
     Delete a task by ID, must be owned by authenticated user
     """
-    statement = select(Task).where(Task.id == task_id, Task.owner_id == current_user_id)
+    statement = select(Task).where(Task.id == task_id, Task.user_id == current_user_id)
     task = session.exec(statement).first()
 
     if not task:

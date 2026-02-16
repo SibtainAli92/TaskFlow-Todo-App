@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/components/providers/ThemeProvider';
+import { useAuth } from '@/lib/auth/AuthContext';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -28,6 +29,7 @@ interface SidebarProps {
 export const Sidebar = ({ isOpen = true, onClose, user }: SidebarProps) => {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
+  const { signOut } = useAuth();
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -37,6 +39,11 @@ export const Sidebar = ({ isOpen = true, onClose, user }: SidebarProps) => {
   ];
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/');
+
+  const handleLogout = async () => {
+    console.log('[SIDEBAR] Logout clicked');
+    await signOut();
+  };
 
   return (
     <>
@@ -152,10 +159,7 @@ export const Sidebar = ({ isOpen = true, onClose, user }: SidebarProps) => {
 
             {/* Logout */}
             <button
-              onClick={() => {
-                // Handle logout
-                window.location.href = '/login';
-              }}
+              onClick={handleLogout}
               className="flex items-center gap-3 px-4 py-3 rounded-lg w-full
                 text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-950
                 transition-colors"

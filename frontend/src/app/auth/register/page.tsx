@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from '../../../lib/auth/client';
+import { useAuth } from '../../../lib/auth/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '../../../components/ui/button';
@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { signUp } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,34 +34,20 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
 
-    try {
-      // Using Better Auth's signIn function for registration
-      // Note: Better Auth typically handles registration via sign-in with new user
-      const result = await signIn('email', {
-        email,
-        password,
-        callbackURL: '/dashboard' // Redirect to dashboard after successful registration
-      });
+    console.log('[REGISTER PAGE] Attempting registration...');
 
-      if (result?.error) {
-        // Handle error object that might contain detail, status, etc.
-        if (typeof result.error === 'string') {
-          setError(result.error);
-        } else if (result.error && typeof result.error === 'object' && 'detail' in result.error) {
-          setError((result.error as { detail?: string }).detail || 'Registration failed');
-        } else if (result.error && typeof result.error === 'object') {
-          setError(JSON.stringify(result.error));
-        } else {
-          setError('Registration failed');
-        }
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (err) {
-      setError('An error occurred during registration');
-      console.error('Registration error:', err);
-    } finally {
+    const result = await signUp(email, password, email.split('@')[0]);
+
+    if (result.error) {
+      console.error('[REGISTER PAGE] Registration failed:', result.error);
+      setError(result.error);
       setLoading(false);
+    } else {
+      console.log('[REGISTER PAGE] Registration successful, redirecting to dashboard...');
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 200);
     }
   };
 

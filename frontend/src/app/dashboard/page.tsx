@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Task } from '../../types/task';
 import { apiClient } from '../../lib/api/client';
-import { useAuth } from '../../lib/auth/client';
+import { useAuth } from '../../lib/auth/AuthContext';
+import { getErrorMessage } from '../../lib/utils/error';
 import { ToastProvider, useToast } from '../../components/toast';
 import { Button } from '../../components/ui/button';
 import { StatsCard } from '../../components/tasks/StatsCard';
@@ -27,27 +28,31 @@ function DashboardContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
-  const { data: session } = useAuth();
+  const { user, session, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
 
-  // Load tasks when component mounts
+  // Load tasks when component mounts and user is authenticated
   useEffect(() => {
     const fetchTasks = async () => {
+      // Don't fetch if still loading auth or no session
+      if (authLoading || !user || !session) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const fetchedTasks = await apiClient.getTasks();
         setTasks(fetchedTasks);
       } catch (err) {
-        showToast('Failed to load tasks. Please try again.', 'error');
+        showToast(getErrorMessage(err), 'error');
         console.error('Error fetching tasks:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    if (session) {
-      fetchTasks();
-    }
-  }, [session, showToast]);
+    fetchTasks();
+  }, [authLoading, user, session]);
 
   // Calculate statistics
   const stats = {
@@ -80,7 +85,7 @@ function DashboardContent() {
       setIsModalOpen(false);
       setEditingTask(null);
     } catch (err) {
-      showToast(`Failed to ${editingTask ? 'update' : 'create'} task. Please try again.`, 'error');
+      showToast(getErrorMessage(err), 'error');
       console.error('Error saving task:', err);
     }
   };
@@ -94,7 +99,7 @@ function DashboardContent() {
       setTasks(tasks.map((t) => (t.id === taskId ? updatedTask : t)));
       showToast(`Task marked as ${!task.completed ? 'completed' : 'active'}!`, 'success');
     } catch (err) {
-      showToast('Failed to update task. Please try again.', 'error');
+      showToast(getErrorMessage(err), 'error');
       console.error('Error updating task:', err);
     }
   };
@@ -107,7 +112,7 @@ function DashboardContent() {
       setTasks(tasks.filter((task) => task.id !== taskId));
       showToast('Task deleted successfully!', 'success');
     } catch (err) {
-      showToast('Failed to delete task. Please try again.', 'error');
+      showToast(getErrorMessage(err), 'error');
       console.error('Error deleting task:', err);
     }
   };

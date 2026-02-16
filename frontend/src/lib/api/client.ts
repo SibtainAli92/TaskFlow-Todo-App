@@ -4,48 +4,65 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8
 
 // Create a base API client with JWT handling
 class ApiClient {
+  private token: string | null = null;
+
+  // Set the auth token (called from AuthContext)
+  setAuthToken(token: string | null) {
+    this.token = token;
+  }
+
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
 
-    // Get the Better Auth token if available
-    // We'll retrieve it from cookies or storage where Better Auth stores it
-    const token = this.getAuthToken();
-
     const response = await fetch(url, {
       ...options,
+      credentials: 'include', // Send cookies with request
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(this.token && { 'Authorization': `Bearer ${this.token}` }),
         ...options.headers,
       },
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        // Handle unauthorized access - maybe redirect to login
-        console.error('Unauthorized access - redirecting to login');
-        // We might want to trigger a logout here
+      // Try to parse error response
+      let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+
+      try {
+        const errorData = await response.json();
+
+        // Handle FastAPI validation errors: {detail: [{type, loc, msg, input}]}
+        if (errorData.detail) {
+          if (Array.isArray(errorData.detail)) {
+            // Extract readable messages from validation errors
+            errorMessage = errorData.detail
+              .map((err: any) => err.msg || JSON.stringify(err))
+              .join(', ');
+          } else if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else {
+            errorMessage = JSON.stringify(errorData.detail);
+          }
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (e) {
+        // If JSON parsing fails, use default error message
+        console.error('Failed to parse error response:', e);
       }
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+
+      if (response.status === 401) {
+        // Handle unauthorized access - redirect to login
+        console.error('Unauthorized access - redirecting to login');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
+      }
+
+      throw new Error(errorMessage);
     }
 
     return response.json();
-  }
-
-  private getAuthToken(): string | null {
-    // Better Auth typically stores the token in cookies
-    // This is a simplified approach - in a real app, you'd use Better Auth's session management
-    if (typeof document !== 'undefined') {
-      // Get token from cookies where Better Auth stores it
-      const cookies = document.cookie.split(';');
-      for (const cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'better-auth.session_token') {
-          return value;
-        }
-      }
-    }
-    return null;
   }
 
   // Task-related methods

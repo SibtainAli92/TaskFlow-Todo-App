@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from '../../../lib/auth/client';
+import { useAuth } from '../../../lib/auth/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '../../../components/ui/button';
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { signIn } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,33 +23,20 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    try {
-      // Using Better Auth's signIn function
-      const result = await signIn('email', {
-        email,
-        password,
-        callbackURL: '/dashboard' // Redirect to dashboard after successful login
-      });
+    console.log('[LOGIN PAGE] Attempting login...');
 
-      if (result?.error) {
-        // Handle error object that might contain detail, status, etc.
-        if (typeof result.error === 'string') {
-          setError(result.error);
-        } else if (result.error && typeof result.error === 'object' && 'detail' in result.error) {
-          setError((result.error as { detail?: string }).detail || 'Login failed');
-        } else if (result.error && typeof result.error === 'object') {
-          setError(JSON.stringify(result.error));
-        } else {
-          setError('Login failed');
-        }
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (err) {
-      setError('An error occurred during login');
-      console.error('Login error:', err);
-    } finally {
+    const result = await signIn(email, password);
+
+    if (result.error) {
+      console.error('[LOGIN PAGE] Login failed:', result.error);
+      setError(result.error);
       setLoading(false);
+    } else {
+      console.log('[LOGIN PAGE] Login successful, redirecting to dashboard...');
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 200);
     }
   };
 

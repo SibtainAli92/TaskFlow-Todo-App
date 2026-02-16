@@ -11,9 +11,9 @@ from sqlalchemy.sql import func
 
 
 class PriorityEnum(str, Enum):
-    HIGH = "High"
-    MEDIUM = "Medium"
-    LOW = "Low"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
 
 
 class RecurrencePatternEnum(str, Enum):
@@ -102,7 +102,6 @@ class TaskRead(TaskBase):
 
 class TaskCreate(TaskBase):
     title: str
-    user_id: uuid.UUID
     description: Optional[str] = None
     due_date: Optional[date] = None
     priority: Optional[PriorityEnum] = None
