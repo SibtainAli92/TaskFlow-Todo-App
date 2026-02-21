@@ -39,12 +39,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Helper function to update session and token together
   const updateSession = (newUser: User | null, newSession: Session | null) => {
+    console.log('[AUTH CONTEXT] Updating session:', {
+      hasUser: !!newUser,
+      hasSession: !!newSession,
+      hasAccessToken: !!newSession?.accessToken
+    });
+
     setUser(newUser);
     setSession(newSession);
 
+    // Store in localStorage as backup
+    if (newUser && newSession) {
+      localStorage.setItem('auth_user', JSON.stringify(newUser));
+      localStorage.setItem('auth_session', JSON.stringify(newSession));
+    } else {
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('auth_session');
+    }
+
     // Immediately update API client token
     if (newSession?.accessToken) {
-      console.log('[AUTH CONTEXT] Setting API client token');
+      console.log('[AUTH CONTEXT] Setting API client token:', newSession.accessToken.substring(0, 30) + '...');
       apiClient.setAuthToken(newSession.accessToken);
     } else {
       console.log('[AUTH CONTEXT] Clearing API client token');
@@ -54,6 +69,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshSession = async () => {
     console.log('[AUTH CONTEXT] Refreshing session...');
+
+    // First, try to load from localStorage for immediate UI update
+    try {
+      const storedUser = localStorage.getItem('auth_user');
+      const storedSession = localStorage.getItem('auth_session');
+
+      if (storedUser && storedSession) {
+        const user = JSON.parse(storedUser);
+        const session = JSON.parse(storedSession);
+        console.log('[AUTH CONTEXT] Loaded session from localStorage');
+
+        // Set state immediately for faster UI
+        setUser(user);
+        setSession(session);
+
+        // Set API token immediately
+        if (session?.accessToken) {
+          apiClient.setAuthToken(session.accessToken);
+        }
+      }
+    } catch (error) {
+      console.error('[AUTH CONTEXT] Error loading from localStorage:', error);
+    }
+
+    // Then validate with backend
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/use-session`, {
         credentials: 'include',
@@ -61,21 +101,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('[AUTH CONTEXT] Session data:', { hasUser: !!data.user, hasSession: !!data.session });
+        console.log('[AUTH CONTEXT] Backend session data:', { hasUser: !!data.user, hasSession: !!data.session });
 
         if (data.user && data.session) {
           updateSession(data.user, data.session);
-          console.log('[AUTH CONTEXT] Session refreshed successfully');
+          console.log('[AUTH CONTEXT] Session refreshed successfully from backend');
         } else {
           updateSession(null, null);
-          console.log('[AUTH CONTEXT] No valid session');
+          console.log('[AUTH CONTEXT] No valid session from backend');
         }
       } else {
         updateSession(null, null);
       }
     } catch (error) {
       console.error('[AUTH CONTEXT] Session refresh error:', error);
-      updateSession(null, null);
+      // Keep localStorage session if backend fails
+      console.log('[AUTH CONTEXT] Backend failed, keeping localStorage session if available');
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
-    console.log('[AUTH CONTEXT] Sign in attempt...');
+    console.log('[AUTH CONTEXT] Sign in attempt for:', email);
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/sign-in`, {
         method: 'POST',
@@ -96,17 +137,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       const data = await response.json();
+      console.log('[AUTH CONTEXT] Sign in response:', {
+        status: response.status,
+        ok: response.ok,
+        hasUser: !!data.user,
+        hasSession: !!data.session,
+        hasAccessToken: !!data.session?.accessToken
+      });
 
       if (!response.ok) {
         console.error('[AUTH CONTEXT] Sign in failed:', data);
         return { error: data.detail || data.error || 'Login failed' };
       }
 
+      // Verify we have the required data
+      if (!data.user || !data.session || !data.session.accessToken) {
+        console.error('[AUTH CONTEXT] Invalid response structure:', data);
+        return { error: 'Invalid response from server' };
+      }
+
       console.log('[AUTH CONTEXT] Sign in successful, setting session...');
+      console.log('[AUTH CONTEXT] Access token preview:', data.session.accessToken.substring(0, 30) + '...');
       updateSession(data.user, data.session);
 
-      // Wait a bit for cookie to be set
+      // Wait a bit for state to propagate
       await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verify token was set
+      console.log('[AUTH CONTEXT] Verification - user set:', !!user);
+      console.log('[AUTH CONTEXT] Verification - session set:', !!session);
 
       return {};
     } catch (error) {
@@ -116,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name?: string): Promise<{ error?: string }> => {
-    console.log('[AUTH CONTEXT] Sign up attempt...');
+    console.log('[AUTH CONTEXT] Sign up attempt for:', email);
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/sign-up`, {
         method: 'POST',
@@ -126,16 +185,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       const data = await response.json();
+      console.log('[AUTH CONTEXT] Sign up response:', {
+        status: response.status,
+        ok: response.ok,
+        hasUser: !!data.user,
+        hasSession: !!data.session,
+        hasAccessToken: !!data.session?.accessToken
+      });
 
       if (!response.ok) {
         console.error('[AUTH CONTEXT] Sign up failed:', data);
         return { error: data.detail || data.error || 'Registration failed' };
       }
 
+      // Verify we have the required data
+      if (!data.user || !data.session || !data.session.accessToken) {
+        console.error('[AUTH CONTEXT] Invalid response structure:', data);
+        return { error: 'Invalid response from server' };
+      }
+
       console.log('[AUTH CONTEXT] Sign up successful, setting session...');
+      console.log('[AUTH CONTEXT] Access token preview:', data.session.accessToken.substring(0, 30) + '...');
       updateSession(data.user, data.session);
 
-      // Wait a bit for cookie to be set
+      // Wait a bit for state to propagate
       await new Promise(resolve => setTimeout(resolve, 100));
 
       return {};

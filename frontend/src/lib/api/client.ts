@@ -8,20 +8,30 @@ class ApiClient {
 
   // Set the auth token (called from AuthContext)
   setAuthToken(token: string | null) {
+    console.log('[API CLIENT] Setting auth token:', token ? `${token.substring(0, 20)}...` : 'null');
     this.token = token;
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
 
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(this.token && { 'Authorization': `Bearer ${this.token}` }),
+      ...options.headers,
+    };
+
+    console.log('[API CLIENT] Request:', {
+      method: options.method || 'GET',
+      url,
+      hasToken: !!this.token,
+      hasAuthHeader: !!headers['Authorization']
+    });
+
     const response = await fetch(url, {
       ...options,
       credentials: 'include', // Send cookies with request
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.token && { 'Authorization': `Bearer ${this.token}` }),
-        ...options.headers,
-      },
+      headers,
     });
 
     if (!response.ok) {
