@@ -17,7 +17,8 @@ app = FastAPI(
     title="hackathon-todo API",
     description="API for managing user tasks with authentication and user isolation",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False  # Disable automatic trailing slash redirects
 )
 
 

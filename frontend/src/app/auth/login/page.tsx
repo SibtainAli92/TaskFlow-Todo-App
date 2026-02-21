@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../../lib/auth/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -14,8 +14,33 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user, session, isLoading } = useAuth();
   const router = useRouter();
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!isLoading && user && session) {
+      console.log('[LOGIN PAGE] User already logged in, redirecting to dashboard...');
+      router.push('/dashboard');
+    }
+  }, [isLoading, user, session, router]);
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary-600 border-r-transparent"></div>
+          <p className="mt-4 text-neutral-600 dark:text-neutral-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render login form if user is already logged in
+  if (user && session) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
