@@ -256,7 +256,7 @@ function DashboardContent() {
               tags={task.tags || []}
               onToggleComplete={handleToggleComplete}
               onClick={handleEditTask}
-              onMenuClick={handleDeleteTask}
+              onDelete={handleDeleteTask}
             />
           ))}
         </div>

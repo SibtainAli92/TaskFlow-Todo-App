@@ -2,7 +2,7 @@ import React from 'react';
 import { PriorityBadge } from './PriorityBadge';
 import { TagChip } from './TagChip';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MoreVertical, CheckCircle2, Circle } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, Circle, Trash2 } from 'lucide-react';
 
 interface TaskCardProps {
   id: string;
@@ -14,7 +14,7 @@ interface TaskCardProps {
   tags?: string[];
   onToggleComplete?: (id: string) => void;
   onClick?: (id: string) => void;
-  onMenuClick?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 export const TaskCard = ({
@@ -27,7 +27,7 @@ export const TaskCard = ({
   tags = [],
   onToggleComplete,
   onClick,
-  onMenuClick,
+  onDelete,
 }: TaskCardProps) => {
   const isCompleted = status === 'completed';
   const isOverdue = dueDate && new Date(dueDate) < new Date() && !isCompleted;
@@ -37,9 +37,11 @@ export const TaskCard = ({
     onToggleComplete?.(id);
   };
 
-  const handleMenuClick = (e: React.MouseEvent) => {
+  const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onMenuClick?.(id);
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      onDelete?.(id);
+    }
   };
 
   return (
@@ -103,18 +105,21 @@ export const TaskCard = ({
               {title}
             </h3>
             <button
-              onClick={handleMenuClick}
+              onClick={handleDeleteClick}
               className="
-                flex-shrink-0 p-2 rounded-xl
-                hover:bg-gradient-to-br hover:from-error-50 hover:to-error-100
-                dark:hover:from-error-950/50 dark:hover:to-error-900/50
-                opacity-0 group-hover:opacity-100 transition-all duration-200
-                hover:shadow-md transform hover:scale-110 active:scale-95
-                border border-transparent hover:border-error-200 dark:hover:border-error-800
+                flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                bg-error-50 hover:bg-error-100 dark:bg-error-950/30 dark:hover:bg-error-950/50
+                border border-error-200 dark:border-error-800
+                text-error-600 dark:text-error-400 hover:text-error-700 dark:hover:text-error-300
+                text-xs font-medium
+                transition-all duration-200
+                hover:shadow-md transform hover:scale-105 active:scale-95
+                opacity-0 group-hover:opacity-100
               "
-              aria-label="Task options"
+              aria-label="Delete task"
             >
-              <MoreVertical className="h-5 w-5 text-neutral-500 dark:text-neutral-400 hover:text-error-600 dark:hover:text-error-400 transition-colors" />
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
             </button>
           </div>
 
